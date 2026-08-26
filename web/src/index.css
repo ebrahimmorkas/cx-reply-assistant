@@ -1,0 +1,55 @@
+@import "tailwindcss";
+
+@theme {
+  /* ---- Type ---- */
+  --font-sans: "Inter", ui-sans-serif, system-ui, sans-serif;
+  --font-mono: "IBM Plex Mono", ui-monospace, "SF Mono", monospace;
+
+  /* ---- Neutrals (slate) ---- */
+  --color-canvas: #F8FAFC;
+  --color-surface: #FFFFFF;
+  --color-border: #E2E8F0;
+  --color-border-strong: #CBD5E1;
+  --color-ink: #0F172A;
+  --color-ink-muted: #64748B;
+  --color-ink-faint: #94A3B8;
+
+  /* ---- Accent: AI-generated content ---- */
+  --color-ai: #4F46E5;
+  --color-ai-soft: #EEF2FF;
+  --color-ai-border: #C7D2FE;
+
+  /* ---- Semantic: guardrail confidence states ---- */
+  --color-confidence-high: #16A34A;
+  --color-confidence-high-soft: #F0FDF4;
+  --color-confidence-high-border: #BBF7D0;
+
+  --color-confidence-low: #D97706;
+  --color-confidence-low-soft: #FFFBEB;
+  --color-confidence-low-border: #FDE68A;
+
+  --color-confidence-insufficient: #DC2626;
+  --color-confidence-insufficient-soft: #FEF2F2;
+  --color-confidence-insufficient-border: #FECACA;
+}
+
+body {
+  font-family: var(--font-sans);
+  background-color: var(--color-canvas);
+  color: var(--color-ink);
+  -webkit-font-smoothing: antialiased;
+}
+
+/* Visible keyboard focus everywhere — accessibility floor */
+:focus-visible {
+  outline: 2px solid var(--color-ai);
+  outline-offset: 2px;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+  }
+}

@@ -18,6 +18,8 @@ export function useConversationList() {
       .select("*")
       .order("created_at", { ascending: false });
 
+    console.log("[useConversationList] raw conversations query:", { convos, convoErr });
+
     if (convoErr) {
       setError(convoErr.message);
       setLoading(false);

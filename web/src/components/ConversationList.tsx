@@ -6,6 +6,7 @@ interface Props {
   activeId: string | null;
   onSelect: (id: string) => void;
   loading: boolean;
+  error?: string | null;
 }
 
 const CHANNEL_LABEL: Record<string, string> = {
@@ -14,7 +15,7 @@ const CHANNEL_LABEL: Record<string, string> = {
   chat: "Chat",
 };
 
-export function ConversationList({ conversations, activeId, onSelect, loading }: Props) {
+export function ConversationList({ conversations, activeId, onSelect, loading, error }: Props) {
   return (
     <div className="flex h-full flex-col border-r border-[var(--color-border)] bg-[var(--color-surface)]">
       <div className="flex items-center justify-between border-b border-[var(--color-border)] px-4 py-3">
@@ -29,7 +30,13 @@ export function ConversationList({ conversations, activeId, onSelect, loading }:
           <div className="p-4 text-sm text-[var(--color-ink-faint)]">Loading conversations…</div>
         )}
 
-        {!loading && conversations.length === 0 && (
+        {error && (
+          <div className="p-4 text-sm text-[var(--color-confidence-insufficient)]">
+            Error loading conversations: {error}
+          </div>
+        )}
+
+        {!loading && !error && conversations.length === 0 && (
           <div className="p-4 text-sm text-[var(--color-ink-faint)]">
             No conversations yet. New customer messages will appear here.
           </div>

@@ -2,11 +2,20 @@ import { useEffect, useRef } from "react";
 import type { ConversationDetail } from "../types";
 import { MessageBubble } from "./MessageBubble";
 import { ReplyComposer } from "./ReplyComposer";
+import { GeneratedReplyPanel } from "./GeneratedReplyPanel";
+import type { GeneratedDraft } from "../lib/useGenerateReply";
 
 interface Props {
   detail: ConversationDetail | null;
   loading: boolean;
   onSend: (content: string) => void;
+  onGenerateReply: () => void;
+  generating: boolean;
+  generateError: string | null;
+  draft: GeneratedDraft | null;
+  onRegenerateDraft: () => void;
+  onApproveDraft: (finalText: string) => void;
+  onDiscardDraft: () => void;
 }
 
 const STATUS_STYLE: Record<string, string> = {
@@ -15,7 +24,18 @@ const STATUS_STYLE: Record<string, string> = {
   resolved: "bg-[var(--color-confidence-high-soft)] text-[var(--color-confidence-high)] border-[var(--color-confidence-high-border)]",
 };
 
-export function ConversationThread({ detail, loading, onSend }: Props) {
+export function ConversationThread({
+  detail,
+  loading,
+  onSend,
+  onGenerateReply,
+  generating,
+  generateError,
+  draft,
+  onRegenerateDraft,
+  onApproveDraft,
+  onDiscardDraft,
+}: Props) {
   const bottomRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
@@ -61,7 +81,23 @@ export function ConversationThread({ detail, loading, onSend }: Props) {
         <div ref={bottomRef} />
       </div>
 
-      <ReplyComposer onSend={onSend} />
+      {generateError && (
+        <p className="mx-4 mb-2 text-xs text-[var(--color-confidence-insufficient)]">
+          Couldn't generate a reply: {generateError}
+        </p>
+      )}
+
+      {draft && (
+        <GeneratedReplyPanel
+          draft={draft}
+          generating={generating}
+          onRegenerate={onRegenerateDraft}
+          onApprove={onApproveDraft}
+          onDiscard={onDiscardDraft}
+        />
+      )}
+
+      <ReplyComposer onSend={onSend} onGenerateReply={onGenerateReply} generating={generating} />
     </div>
   );
 }

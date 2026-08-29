@@ -73,6 +73,7 @@ export interface ConversationSummary {
   conversation: Conversation;
   customer: Customer;
   latestMessage: Message | null;
+  unreadCount: number;
 }
 
 export interface ConversationDetail {

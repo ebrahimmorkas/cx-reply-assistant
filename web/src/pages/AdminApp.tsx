@@ -5,7 +5,7 @@ import { ConversationList } from "../components/ConversationList";
 import { ConversationThread } from "../components/ConversationThread";
 import { CustomerInfoPanel } from "../components/CustomerInfoPanel";
 import { useConversationList, useConversationDetail } from "../lib/queries";
-import { sendMessage, approveGeneratedReply } from "../lib/mutations";
+import { sendMessage, approveGeneratedReply, markConversationRead } from "../lib/mutations";
 import { useGenerateReply } from "../lib/useGenerateReply";
 import { useAuth } from "../lib/auth";
 import { useAgentProfile } from "../lib/profiles";
@@ -16,7 +16,13 @@ export function AdminApp() {
   const { session, loading: authLoading, signOut } = useAuth();
   const { agent, loading: agentLoading } = useAgentProfile(session);
 
-  const { conversations, loading: listLoading, error: listError, refresh: refreshList } = useConversationList();
+  const {
+    conversations,
+    loading: listLoading,
+    error: listError,
+    refresh: refreshList,
+    markLocalRead,
+  } = useConversationList();
   const [activeId, setActiveId] = useState<string | null>(null);
   const { detail, loading: detailLoading, appendMessage } = useConversationDetail(activeId);
   const { draft, loading: generating, error: generateError, generate, clear } = useGenerateReply();
@@ -28,6 +34,14 @@ export function AdminApp() {
   useEffect(() => {
     if (!authLoading && !session) navigate("/admin/login");
   }, [authLoading, session, navigate]);
+
+  useEffect(() => {
+    if (activeId && agent) {
+      markLocalRead(activeId);
+      markConversationRead(agent.id, activeId).catch(console.error);
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [activeId, agent, detail?.messages.length]);
 
   const handleSend = async (content: string) => {
     if (!activeId) return;
@@ -60,7 +74,7 @@ export function AdminApp() {
     );
   }
 
-  if (!session) return null; // redirect effect is in flight
+  if (!session) return null; 
 
   if (!agent) {
     return (

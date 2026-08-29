@@ -24,9 +24,16 @@ export function useConversationList() {
       return;
     }
 
+    const { data: reads } = await supabase
+      .from("conversation_reads")
+      .select("conversation_id, last_read_at");
+    const lastReadByConversation = new Map((reads ?? []).map((r) => [r.conversation_id, r.last_read_at]));
+
     const summaries: ConversationSummary[] = await Promise.all(
       (convos ?? []).map(async (conversation) => {
-        const [{ data: customer }, { data: messages }] = await Promise.all([
+        const lastReadAt = lastReadByConversation.get(conversation.id) ?? "1970-01-01T00:00:00Z";
+
+        const [{ data: customer }, { data: messages }, { count: unreadCount }] = await Promise.all([
           supabase.from("customers").select("*").eq("id", conversation.customer_id).single(),
           supabase
             .from("messages")
@@ -34,12 +41,19 @@ export function useConversationList() {
             .eq("conversation_id", conversation.id)
             .order("created_at", { ascending: false })
             .limit(1),
+          supabase
+            .from("messages")
+            .select("*", { count: "exact", head: true })
+            .eq("conversation_id", conversation.id)
+            .eq("sender_type", "customer")
+            .gt("created_at", lastReadAt),
         ]);
 
         return {
           conversation,
           customer: customer!,
           latestMessage: messages?.[0] ?? null,
+          unreadCount: unreadCount ?? 0,
         };
       })
     );
@@ -48,11 +62,17 @@ export function useConversationList() {
     if (!silent) setLoading(false);
   }, []);
 
+  const markLocalRead = useCallback((conversationId: string) => {
+    setConversations((prev) =>
+      prev.map((c) => (c.conversation.id === conversationId ? { ...c, unreadCount: 0 } : c))
+    );
+  }, []);
+
   useEffect(() => {
     refresh();
   }, [refresh]);
 
-  return { conversations, loading, error, refresh };
+  return { conversations, loading, error, refresh, markLocalRead };
 }
 
 export function useConversationDetail(conversationId: string | null) {
@@ -108,8 +128,6 @@ export function useConversationDetail(conversationId: string | null) {
     refresh();
   }, [refresh]);
 
-  // Live append: a new message for the currently-open conversation
-  // shows up immediately, with no refetch and no loading flash.
   const appendMessage = useCallback(
     (message: Message) => {
       setDetail((prev) => {

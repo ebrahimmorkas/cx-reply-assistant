@@ -44,3 +44,10 @@ export async function approveGeneratedReply(
 
   return data;
 }
+
+export async function markConversationRead(agentId: string, conversationId: string) {
+  const { error } = await supabase
+    .from("conversation_reads")
+    .upsert({ agent_id: agentId, conversation_id: conversationId, last_read_at: new Date().toISOString() });
+  if (error) throw new Error(error.message);
+}

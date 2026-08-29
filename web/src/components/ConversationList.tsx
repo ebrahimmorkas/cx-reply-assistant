@@ -9,12 +9,6 @@ interface Props {
   error?: string | null;
 }
 
-const CHANNEL_LABEL: Record<string, string> = {
-  whatsapp: "WhatsApp",
-  email: "Email",
-  chat: "Chat",
-};
-
 export function ConversationList({ conversations, activeId, onSelect, loading, error }: Props) {
   return (
     <div className="flex h-full flex-col border-r border-[var(--color-border)] bg-[var(--color-surface)]">
@@ -42,7 +36,7 @@ export function ConversationList({ conversations, activeId, onSelect, loading, e
           </div>
         )}
 
-        {conversations.map(({ conversation, customer, latestMessage }) => {
+        {conversations.map(({ conversation, customer, latestMessage, unreadCount }) => {
           const isActive = conversation.id === activeId;
           return (
             <button
@@ -57,8 +51,15 @@ export function ConversationList({ conversations, activeId, onSelect, loading, e
               </div>
               <div className="min-w-0 flex-1">
                 <div className="flex items-center justify-between gap-2">
-                  <span className="truncate text-sm font-medium text-[var(--color-ink)]">
-                    {customer.name}
+                  <span className="flex min-w-0 items-center gap-1.5">
+                    <span className="truncate text-sm font-medium text-[var(--color-ink)]">
+                      {customer.name}
+                    </span>
+                    {unreadCount > 0 && (
+                      <span className="flex h-4 min-w-4 shrink-0 items-center justify-center rounded-full bg-[var(--color-ai)] px-1 text-[10px] font-semibold text-white">
+                        {unreadCount > 99 ? "99+" : unreadCount}
+                      </span>
+                    )}
                   </span>
                   {latestMessage && (
                     <span className="shrink-0 text-xs text-[var(--color-ink-faint)]">
@@ -69,9 +70,6 @@ export function ConversationList({ conversations, activeId, onSelect, loading, e
                 <p className="mt-0.5 truncate text-xs text-[var(--color-ink-muted)]">
                   {latestMessage?.content ?? "No messages yet"}
                 </p>
-                <span className="mt-1 inline-block rounded border border-[var(--color-border)] px-1.5 py-0.5 text-[10px] font-medium uppercase tracking-wide text-[var(--color-ink-faint)]">
-                  {CHANNEL_LABEL[conversation.channel] ?? conversation.channel}
-                </span>
               </div>
             </button>
           );

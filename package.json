@@ -5,7 +5,8 @@
   "type": "module",
   "scripts": {
     "ingest": "tsx scripts/ingest-knowledge.ts",
-    "test-retrieval": "tsx scripts/test-retrieval.ts"
+    "test-retrieval": "tsx scripts/test-retrieval.ts",
+    "create-demo-users": "tsx scripts/create-demo-users.ts"
   },
   "dependencies": {
     "@supabase/supabase-js": "^2.45.4",

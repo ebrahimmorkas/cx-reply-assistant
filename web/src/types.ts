@@ -16,6 +16,7 @@ export interface Customer {
   name: string;
   email: string | null;
   phone: string | null;
+  auth_user_id: string | null;
   created_at: string;
 }
 

@@ -1,14 +1,16 @@
 import { useEffect, useState, useCallback } from "react";
 import { supabase } from "./supabase";
-import type { ConversationSummary, ConversationDetail } from "../types";
+import { useRealtimeMessages } from "./useRealtimeMessages";
+import { appendMessageUnique } from "./messageUtils";
+import type { ConversationSummary, ConversationDetail, Message } from "../types";
 
 export function useConversationList() {
   const [conversations, setConversations] = useState<ConversationSummary[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
-  const refresh = useCallback(async () => {
-    setLoading(true);
+  const refresh = useCallback(async (silent = false) => {
+    if (!silent) setLoading(true);
     setError(null);
 
     const { data: convos, error: convoErr } = await supabase
@@ -16,11 +18,9 @@ export function useConversationList() {
       .select("*")
       .order("created_at", { ascending: false });
 
-    console.log("[useConversationList] raw conversations query:", { convos, convoErr });
-
     if (convoErr) {
       setError(convoErr.message);
-      setLoading(false);
+      if (!silent) setLoading(false);
       return;
     }
 
@@ -45,7 +45,7 @@ export function useConversationList() {
     );
 
     setConversations(summaries);
-    setLoading(false);
+    if (!silent) setLoading(false);
   }, []);
 
   useEffect(() => {
@@ -55,7 +55,6 @@ export function useConversationList() {
   return { conversations, loading, error, refresh };
 }
 
-/** Fetches full detail for one conversation: customer, order, all messages. */
 export function useConversationDetail(conversationId: string | null) {
   const [detail, setDetail] = useState<ConversationDetail | null>(null);
   const [loading, setLoading] = useState(false);
@@ -109,5 +108,19 @@ export function useConversationDetail(conversationId: string | null) {
     refresh();
   }, [refresh]);
 
-  return { detail, loading, error, refresh };
+  // Live append: a new message for the currently-open conversation
+  // shows up immediately, with no refetch and no loading flash.
+  const appendMessage = useCallback(
+    (message: Message) => {
+      setDetail((prev) => {
+        if (!prev || prev.conversation.id !== message.conversation_id) return prev;
+        return { ...prev, messages: appendMessageUnique(prev.messages, message) };
+      });
+    },
+    []
+  );
+
+  useRealtimeMessages(conversationId, appendMessage);
+
+  return { detail, loading, error, refresh, appendMessage };
 }

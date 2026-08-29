@@ -4,7 +4,8 @@ import { LogOut, Send } from "lucide-react";
 import { supabase } from "../lib/supabase";
 import { useAuth } from "../lib/auth";
 import { useCustomerProfile } from "../lib/profiles";
-import { useRealtimeRefresh } from "../lib/useRealtimeRefresh";
+import { useRealtimeMessages } from "../lib/useRealtimeMessages";
+import { appendMessageUnique } from "../lib/messageUtils";
 import { MessageBubble } from "../components/MessageBubble";
 import type { Conversation, Message } from "../types";
 
@@ -19,38 +20,37 @@ export function ClientPortal() {
   const [text, setText] = useState("");
   const bottomRef = useRef<HTMLDivElement>(null);
 
-  const loadConversation = useCallback(async () => {
+  useEffect(() => {
     if (!customer) return;
-    setLoadingConvo(true);
 
-    const { data: convo } = await supabase
-      .from("conversations")
-      .select("*")
-      .eq("customer_id", customer.id)
-      .order("created_at", { ascending: false })
-      .limit(1)
-      .maybeSingle();
-
-    setConversation(convo ?? null);
-
-    if (convo) {
-      const { data: msgs } = await supabase
-        .from("messages")
+    (async () => {
+      setLoadingConvo(true);
+      const { data: convo } = await supabase
+        .from("conversations")
         .select("*")
-        .eq("conversation_id", convo.id)
-        .order("created_at", { ascending: true });
-      setMessages(msgs ?? []);
-    } else {
-      setMessages([]);
-    }
-    setLoadingConvo(false);
+        .eq("customer_id", customer.id)
+        .order("created_at", { ascending: false })
+        .limit(1)
+        .maybeSingle();
+
+      setConversation(convo ?? null);
+
+      if (convo) {
+        const { data: msgs } = await supabase
+          .from("messages")
+          .select("*")
+          .eq("conversation_id", convo.id)
+          .order("created_at", { ascending: true });
+        setMessages(msgs ?? []);
+      }
+      setLoadingConvo(false);
+    })();
   }, [customer]);
 
-  useEffect(() => {
-    loadConversation();
-  }, [loadConversation]);
-
-  useRealtimeRefresh(loadConversation);
+  const handleRealtimeInsert = useCallback((message: Message) => {
+    setMessages((prev) => appendMessageUnique(prev, message));
+  }, []);
+  useRealtimeMessages(conversation?.id ?? null, handleRealtimeInsert);
 
   useEffect(() => {
     bottomRef.current?.scrollIntoView({ behavior: "smooth" });
@@ -81,14 +81,16 @@ export function ClientPortal() {
       setConversation(newConvo);
     }
 
-    const { error: msgError } = await supabase
+    const { data: newMessage, error: msgError } = await supabase
       .from("messages")
-      .insert({ conversation_id: conversationId, sender_type: "customer", content });
-    if (msgError) {
-      alert(`Couldn't send your message: ${msgError.message}`);
+      .insert({ conversation_id: conversationId, sender_type: "customer", content })
+      .select()
+      .single();
+    if (msgError || !newMessage) {
+      alert(`Couldn't send your message: ${msgError?.message}`);
       return;
     }
-    loadConversation();
+    setMessages((prev) => appendMessageUnique(prev, newMessage));
   };
 
   if (authLoading || customerLoading) {

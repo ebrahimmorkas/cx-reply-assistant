@@ -1,17 +1,18 @@
 import { supabase } from "./supabase";
-import type { SenderType } from "../types";
+import type { SenderType, Message } from "../types";
 
 export async function sendMessage(
   conversationId: string,
   content: string,
   senderType: SenderType = "agent"
-) {
-  const { error } = await supabase.from("messages").insert({
-    conversation_id: conversationId,
-    sender_type: senderType,
-    content,
-  });
+): Promise<Message> {
+  const { data, error } = await supabase
+    .from("messages")
+    .insert({ conversation_id: conversationId, sender_type: senderType, content })
+    .select()
+    .single();
   if (error) throw new Error(error.message);
+  return data;
 }
 
 export async function approveGeneratedReply(
@@ -19,14 +20,14 @@ export async function approveGeneratedReply(
   replyLogId: string | null,
   originalDraft: string,
   finalText: string
-) {
+): Promise<Message> {
   const wasEdited = finalText.trim() !== originalDraft.trim();
 
-  const { error: msgError } = await supabase.from("messages").insert({
-    conversation_id: conversationId,
-    sender_type: "ai",
-    content: finalText,
-  });
+  const { data, error: msgError } = await supabase
+    .from("messages")
+    .insert({ conversation_id: conversationId, sender_type: "ai", content: finalText })
+    .select()
+    .single();
   if (msgError) throw new Error(msgError.message);
 
   if (replyLogId) {
@@ -40,4 +41,6 @@ export async function approveGeneratedReply(
       .eq("id", replyLogId);
     if (logError) throw new Error(logError.message);
   }
+
+  return data;
 }

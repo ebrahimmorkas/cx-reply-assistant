@@ -18,12 +18,11 @@ export function AdminApp() {
 
   const { conversations, loading: listLoading, error: listError, refresh: refreshList } = useConversationList();
   const [activeId, setActiveId] = useState<string | null>(null);
-  const { detail, loading: detailLoading, refresh: refreshDetail } = useConversationDetail(activeId);
+  const { detail, loading: detailLoading, appendMessage } = useConversationDetail(activeId);
   const { draft, loading: generating, error: generateError, generate, clear } = useGenerateReply();
 
   useRealtimeRefresh(() => {
-    refreshList();
-    refreshDetail();
+    refreshList(true);
   });
 
   useEffect(() => {
@@ -32,8 +31,8 @@ export function AdminApp() {
 
   const handleSend = async (content: string) => {
     if (!activeId) return;
-    await sendMessage(activeId, content, "agent");
-    refreshDetail();
+    const message = await sendMessage(activeId, content, "agent");
+    appendMessage(message);
   };
 
   const handleSelectConversation = (id: string) => {
@@ -48,9 +47,9 @@ export function AdminApp() {
 
   const handleApproveDraft = async (finalText: string) => {
     if (!activeId || !draft) return;
-    await approveGeneratedReply(activeId, draft.replyLogId, draft.reply, finalText);
+    const message = await approveGeneratedReply(activeId, draft.replyLogId, draft.reply, finalText);
+    appendMessage(message);
     clear();
-    refreshDetail();
   };
 
   if (authLoading || agentLoading) {

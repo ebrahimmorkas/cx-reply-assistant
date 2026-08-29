@@ -3,7 +3,7 @@
 AI-powered reply assistant for CX agents — Part 1 of the Datastraw technical assessment.
 
 **Live demo:** https://cx-reply-assistant-six.vercel.app/
-**Repo:** (add your GitHub URL here)
+**Repo:** https://github.com/ebrahimmorkas/cx-reply-assistant
 
 Try the three scenarios pre-loaded in the seed data to see the guardrail in
 action — see "Testing the guardrail" below for exact steps and expected
@@ -49,11 +49,19 @@ results.
 
 ## Schema notes
 
-Every table carries `brand_id` (directly or via a foreign-key chain) so Row
-Level Security can enforce brand isolation — every table currently has RLS
-**enabled** but policies are intentionally deferred until Supabase Auth /
-agent roles are wired in (1C/1D), to avoid locking ourselves out during
-early development.
+Every table carries `brand_id` (directly or via a foreign-key chain), which
+is what makes Row Level Security able to enforce brand isolation.
+RLS went through two stages, both deliberate:
+- **`0003_rls_policies.sql`** (Part 1 base build): RLS enabled on every
+  table, but with permissive policies — an explicit scope decision, since
+  Part 1 didn't yet have Supabase Auth wired in, so there was no
+  `auth.uid()` to check against. Real policies would have been theater
+  without real identities behind them.
+- **`0004_auth_and_realtime.sql`** (see "Beyond the base assessment"
+  below): once real Supabase Auth was added for two roles, the placeholder
+  policies were replaced with real ones — an agent can only touch rows in
+  brands they're granted access to, a customer can only touch their own
+  conversation, enforced by the database itself.
 
 `reply_logs` is the audit trail required by the assessment: it captures the
 customer message, the retrieved KB context (as JSON, keyed back to
@@ -183,6 +191,99 @@ policies (see Part 2 for how this scales to 500 brands).
   end-to-end (all three confidence scenarios) on the deployed URL, not just
   localhost.
 
+## Beyond the base assessment: real auth + real-time (two-portal system)
+
+To go beyond the base build, Part 1 was extended with a second, genuinely
+real feature rather than more surface area: real Supabase Auth for two
+distinct roles, real Row Level Security replacing the Part 1 placeholder
+policies, and live real-time updates — turning what Part 2's architecture
+document *described* into something actually running.
+
+**What changed:**
+- **Two auth roles.** Agents (admin side) and customers (client side) each
+  get real Supabase Auth accounts. `agents` + `agent_brand_access` tables
+  scope an agent to their brand(s); `customers.auth_user_id` links a
+  customer row to their own auth account.
+- **Real RLS policies** (`0004_auth_and_realtime.sql`) replace the Part 1
+  placeholder: an agent can only read/write rows in brands they're granted
+  access to; a customer can only read/write their own conversation and
+  messages, enforced by the database itself — not just application code.
+- **A Client Portal** (`/client`) where a customer logs in, sees their own
+  conversation, and can send a new message — closing the gap where
+  customer messages previously had to be inserted manually for testing.
+- **Live updates on both sides**, via targeted Supabase Realtime
+  subscriptions: when a customer sends a message, it appears on the admin
+  panel instantly with no refresh, and when an agent approves an AI reply,
+  the customer sees it appear live too. This works safely with no manual
+  filtering because Supabase Realtime enforces the same RLS policies as
+  regular queries — an agent's subscription only ever receives events for
+  their own brand, exactly like a `select` would.
+
+**Made it feel like a real chat app, not a page that reloads.** The first
+version of this triggered a full refetch (with a loading spinner) on every
+new message — functionally correct but visibly clunky next to something
+like WhatsApp. It was reworked so that:
+- Sending a message appends the returned row to local state directly —
+  no refetch at all.
+- The open conversation has its own targeted realtime subscription
+  (filtered server-side to just that conversation) that appends incoming
+  rows the instant they arrive.
+- A dedupe-by-id guard (`messageUtils.ts`) makes it safe for the same
+  message to reach local state two ways (an optimistic append plus a
+  realtime event for that same row) without ever showing it twice.
+- The sidebar list still refreshes when anything changes, but silently —
+  no loading flash, just an in-place update, matching how a real chat
+  client behaves.
+
+**Unread message counts.** A small `conversation_reads` table
+(`0005_conversation_reads.sql`) tracks, per agent per conversation, when
+that agent last viewed it — "unread" is just customer messages sent after
+that timestamp. Opening a conversation clears its badge instantly
+(optimistic local update) while the read timestamp persists in the
+background; a message arriving while the conversation is already open is
+also marked read immediately, so the badge doesn't falsely climb while
+you're actively looking at it.
+
+**Two real bugs worth mentioning**, since finding and fixing them mattered
+more than getting it right on the first attempt: an early version of the
+realtime hook captured a stale closure from its very first render, so a
+new message would reset the currently-open conversation back to "select a
+conversation" — fixed by having the subscription always read from a ref
+that's updated every render rather than a value frozen at mount time.
+Separately, the agent/customer profile hooks were re-fetching on every
+Supabase auth token refresh (which fires automatically on tab refocus),
+causing a visible loading flash — fixed by keying those effects off the
+user's id specifically rather than the whole session object, since a
+token refresh produces a new session for the same user. (See Part 4 for
+the full write-up of the first one as an AI-usage reflection.)
+
+**Migration files, in order:**
+- `0001_init.sql`, `0002_seed.sql`, `0003_rls_policies.sql` — Part 1 base build
+- `0004_auth_and_realtime.sql` — agents/agent_brand_access tables, real
+  per-role RLS, Realtime enabled on messages/conversations
+- `0005_conversation_reads.sql` — per-agent read tracking for unread counts
+
+**Demo credentials** (all use the same password, created by
+`npm run create-demo-users`):
+- Password: `Demo1234!`
+- Agent: `agent@hydrabottle.com`
+- Customers: `priya.sharma@example.com`, `rohan.mehta@example.com`
+
+**Setup for this feature:**
+```bash
+# 1. Apply the two new migrations in Supabase's SQL editor, in order:
+#    supabase/migrations/0004_auth_and_realtime.sql
+#    supabase/migrations/0005_conversation_reads.sql
+
+# 2. Provision the demo Auth accounts
+npm run create-demo-users
+
+# 3. Run the app and test both portals
+cd web && npm run dev
+```
+Open `/client/login` in one browser tab and `/admin/login` in another (or
+an incognito window) to see the real-time flow between the two roles.
+
 ## Engineering decisions & tradeoffs
 
 A few choices worth calling out explicitly, since reasoning about tradeoffs
@@ -203,14 +304,14 @@ was emphasized as much as the working code:
   An LLM can sound confident while being wrong; requiring a second,
   non-LLM signal to agree is what makes the guardrail meaningfully more
   robust than just asking the model to grade its own homework.
-- **RLS is enabled everywhere but policies are currently permissive**
-  (`0003_rls_policies.sql`), documented explicitly as a scope decision —
-  this assessment doesn't implement Supabase Auth / per-agent login, so
-  building real per-brand row policies would just be theater without an
-  `auth.uid()` to check against. The schema is structured so real policies
-  (checking brand access per authenticated agent) are a small addition once
-  auth exists, not a redesign — that mechanism and how it holds up at 500
-  brands / 5,000 agents is the subject of Part 2.
+- **RLS started permissive, then became real** (`0003` → `0004`): Part 1
+  shipped with RLS enabled but permissive policies, documented explicitly as
+  a scope decision — building real per-brand policies before Supabase Auth
+  existed would have been enforcement with nothing to enforce against. Once
+  auth was added (see "Beyond the base assessment"), the placeholder was
+  replaced with real per-role policies checking `auth.uid()` — the schema
+  was deliberately shaped from the start so that swap was additive, not a
+  redesign.
 - **Chunking is small and simple** (~2 sentences, 1-sentence overlap) —
   appropriately sized for 4 short policy docs, but structured the same way
   it would need to be for much longer real-world policy documents, so the
@@ -222,8 +323,10 @@ was emphasized as much as the working code:
 
 ## What I'd change for production
 
-- Real Supabase Auth with per-agent brand access, replacing the permissive
-  RLS policies with actual `auth.uid()`-scoped checks.
+- Extend the single-instance real-time/RLS approach here to the connection
+  pooling, table partitioning, and per-brand rate limits described in Part
+  2 — what's built here is correct at this scale, but Part 2 details
+  exactly what breaks first past it and what changes.
 - Rate limiting / retry logic on the three external API calls in the Edge
   Function pipeline (HuggingFace, Qdrant, Groq) — currently a transient
   failure in any one of them fails the whole request with no retry.
@@ -232,3 +335,6 @@ was emphasized as much as the working code:
 - A feedback loop where agent edits to AI drafts get reviewed periodically —
   frequent edits to a specific policy area would be a signal that policy
   doc's phrasing (or the confidence threshold) needs tuning.
+- A proper password-reset/invite flow for the demo accounts — right now all
+  demo users share one documented password, which is fine for a reviewer
+  testing this submission but is obviously not how real onboarding would work.

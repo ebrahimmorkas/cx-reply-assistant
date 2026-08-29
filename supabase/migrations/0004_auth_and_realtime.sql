@@ -1,15 +1,3 @@
--- ============================================================
--- Real authentication, real RLS, and Realtime
--- ============================================================
--- Replaces the permissive placeholder policies from 0003 (which were
--- explicitly documented as a scope decision deferring real auth) with
--- actual per-role enforcement now that we're adding Supabase Auth for
--- two roles: agents (admin side) and customers (client side).
--- ============================================================
-
--- ---------- Auth-linked tables ----------
-
--- One row per agent, keyed by their Supabase Auth user id.
 create table agents (
   id uuid primary key references auth.users(id) on delete cascade,
   name text not null,
@@ -125,10 +113,6 @@ create policy "customers send own messages" on messages for insert
       where cu.auth_user_id = auth.uid()
     )
   );
-
--- ---------- Enable Realtime ----------
--- Lets both the admin panel and the client portal subscribe to live
--- inserts instead of polling.
 
 alter publication supabase_realtime add table messages;
 alter publication supabase_realtime add table conversations;

@@ -9,6 +9,4 @@ if (!url || !anonKey) {
   );
 }
 
-// Frontend uses the anon key only — never the service_role key, which
-// must stay server-side (ingestion scripts, Edge Functions).
 export const supabase = createClient(url, anonKey);

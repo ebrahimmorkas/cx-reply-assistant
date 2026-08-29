@@ -1,25 +1,3 @@
-// deno-lint-ignore-file no-explicit-any
-/**
- * POST /generate-reply
- * Body: { conversationId: string }
- *
- * Pipeline:
- *   1. Load conversation + customer + order + brand + recent messages
- *   2. Embed the customer's latest message (same model as ingestion, 1B)
- *   3. Search Qdrant for the top matching policy chunks, filtered to
- *      this conversation's brand (multi-tenant isolation)
- *   4. Build a grounded prompt (prompt.ts) and call Groq
- *   5. Parse the model's structured output, combine with retrieval
- *      score to compute a final confidence level (confidence.ts)
- *   6. Write a full audit row to reply_logs (customer message,
- *      retrieved context, draft, confidence)
- *   7. Return the draft + confidence + retrieved context to the caller
- *
- * This function never sends anything to the customer directly — it
- * only produces a draft for a human agent to edit/regenerate/approve
- * in the UI (1D frontend wiring).
- */
-
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 import { embedText } from "../_shared/embeddings.ts";
 import { searchChunks } from "../_shared/qdrant.ts";

@@ -1,8 +1,3 @@
-/**
- * Deno port of scripts/lib/qdrant.ts, search-only — the Edge Function
- * never writes to Qdrant, only queries it at reply-generation time.
- */
-
 export interface QdrantConfig {
   url: string;
   apiKey: string;

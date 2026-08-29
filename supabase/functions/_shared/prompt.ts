@@ -1,19 +1,3 @@
-/**
- * Builds the prompt sent to Groq. This is where the guardrail actually
- * lives — not as a separate filter bolted on afterward, but as an
- * explicit constraint baked into the instructions themselves:
- *
- *   1. The model is told to answer ONLY from the provided policy
- *      excerpts — not general knowledge about "typical" return policies.
- *   2. The model must self-report whether the policy text actually
- *      covers the situation, as a structured `sufficient_context`
- *      boolean — this is what lets index.ts downgrade confidence
- *      instead of shipping a confident-sounding guess.
- *   3. When context is insufficient, the model is told exactly what
- *      *kind* of reply to write (acknowledge + escalate, no promises)
- *      rather than left to improvise a refusal.
- */
-
 import type { SearchResult } from "./qdrant.ts";
 import type { ChatMessage } from "./groq.ts";
 
@@ -87,8 +71,6 @@ export interface ParsedModelOutput {
   reasoning: string;
 }
 
-/** Parses the model's JSON output defensively — LLMs occasionally wrap
- * JSON in markdown fences despite instructions not to. */
 export function parseModelOutput(raw: string): ParsedModelOutput {
   let text = raw.trim();
   const fenceMatch = text.match(/```(?:json)?\s*([\s\S]*?)```/);

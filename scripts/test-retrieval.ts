@@ -1,10 +1,3 @@
-/**
- * Quick manual test for retrieval — run this after ingestion to confirm
- * Qdrant returns sensible chunks for realistic customer messages.
- *
- * Run with:  npm run test-retrieval "My order was delivered but the bottle is broken"
- */
-
 import "dotenv/config";
 import { createClient } from "@supabase/supabase-js";
 import { embedText } from "./lib/embeddings";

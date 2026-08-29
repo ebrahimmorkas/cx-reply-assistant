@@ -1,8 +1,3 @@
-// Mirrors the Postgres schema defined in supabase/migrations/0001_init.sql.
-// Kept as plain interfaces (not generated) since the schema is small and
-// stable for this assessment — in a larger codebase these would be
-// generated via `supabase gen types typescript`.
-
 export interface Brand {
   id: string;
   name: string;
@@ -74,16 +69,12 @@ export interface ReplyLog {
   created_at: string;
 }
 
-// Composite shape used by the conversation list — a conversation joined
-// with just enough customer/order/message info to render a queue row
-// without fetching every message up front.
 export interface ConversationSummary {
   conversation: Conversation;
   customer: Customer;
   latestMessage: Message | null;
 }
 
-// Full detail shape for the active conversation view.
 export interface ConversationDetail {
   conversation: Conversation;
   customer: Customer;

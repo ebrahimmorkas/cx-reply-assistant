@@ -1,13 +1,3 @@
--- ============================================================
--- Seed data — one brand, one customer, one order, one conversation
--- pre-loaded with the exact scenario from the assessment brief:
--- "My order was delivered but the bottle is broken. What can I do?"
---
--- A second knowledge doc set is included so the guardrail scenario
--- (refund requested outside the policy window) is also demonstrable.
--- ============================================================
-
--- ---------- Brand ----------
 insert into brands (id, name, slug) values
   ('11111111-1111-1111-1111-111111111111', 'HydraBottle Co.', 'hydrabottle');
 

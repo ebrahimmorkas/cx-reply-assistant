@@ -1,17 +1,3 @@
-/**
- * Creates real Supabase Auth users for the demo: one agent and the two
- * seeded customers, then links them into our schema (agents +
- * agent_brand_access for the agent; customers.auth_user_id for the
- * customers). Uses the service_role key via the Auth Admin API, since
- * creating users this way requires elevated privileges — this should
- * only ever be run from a trusted environment, never the frontend.
- *
- * Safe to re-run: it looks up existing auth users by email before
- * creating a new one, so re-running won't create duplicates.
- *
- * Run with: npm run create-demo-users
- */
-
 import "dotenv/config";
 import { createClient } from "@supabase/supabase-js";
 

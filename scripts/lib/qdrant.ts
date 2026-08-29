@@ -1,12 +1,5 @@
-/**
- * Minimal Qdrant REST client — deliberately not using the official SDK.
- * Qdrant's REST API is simple enough that plain fetch keeps this code
- * portable between the Node ingestion script and the Deno Edge Function
- * (1D) without dealing with two different package ecosystems.
- */
-
 export interface QdrantConfig {
-  url: string; // e.g. https://xxxx.aws.cloud.qdrant.io:6333
+  url: string; 
   apiKey: string;
   collection: string;
 }
@@ -27,7 +20,6 @@ function headers(cfg: QdrantConfig) {
   };
 }
 
-/** Creates the collection if it doesn't already exist. Safe to call repeatedly. */
 export async function ensureCollection(cfg: QdrantConfig, vectorSize: number) {
   const checkRes = await fetch(`${cfg.url}/collections/${cfg.collection}`, {
     headers: headers(cfg),
@@ -47,9 +39,6 @@ export async function ensureCollection(cfg: QdrantConfig, vectorSize: number) {
     }
   }
 
-  // Qdrant requires an explicit payload index on any field used in a
-  // filter (our brand_id filter in searchChunks). Safe to call even if
-  // the index already exists — Qdrant treats it as a no-op.
   await ensurePayloadIndex(cfg, "brand_id", "keyword");
 }
 
@@ -93,11 +82,6 @@ export interface SearchResult {
   payload: KnowledgeChunkPayload;
 }
 
-/**
- * Searches for the most relevant chunks given a query vector, optionally
- * filtered to a single brand (critical — an agent at Brand A must never
- * retrieve Brand B's policy text).
- */
 export async function searchChunks(
   cfg: QdrantConfig,
   queryVector: number[],

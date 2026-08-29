@@ -9,16 +9,13 @@ export interface AgentProfile {
   email: string;
 }
 
-/** Resolves the session into an agent row, if one exists. A session
- * belonging to a customer (not an agent) simply resolves to null here —
- * RLS on the agents table means the query only ever returns your own
- * row anyway, but we still check explicitly so route guards are clear. */
 export function useAgentProfile(session: Session | null) {
   const [agent, setAgent] = useState<AgentProfile | null>(null);
   const [loading, setLoading] = useState(true);
+  const userId = session?.user?.id ?? null;
 
   useEffect(() => {
-    if (!session) {
+    if (!userId) {
       setAgent(null);
       setLoading(false);
       return;
@@ -27,13 +24,13 @@ export function useAgentProfile(session: Session | null) {
     supabase
       .from("agents")
       .select("*")
-      .eq("id", session.user.id)
+      .eq("id", userId)
       .single()
       .then(({ data }) => {
         setAgent(data ?? null);
         setLoading(false);
       });
-  }, [session]);
+  }, [userId]);
 
   return { agent, loading };
 }
@@ -41,9 +38,10 @@ export function useAgentProfile(session: Session | null) {
 export function useCustomerProfile(session: Session | null) {
   const [customer, setCustomer] = useState<Customer | null>(null);
   const [loading, setLoading] = useState(true);
+  const userId = session?.user?.id ?? null;
 
   useEffect(() => {
-    if (!session) {
+    if (!userId) {
       setCustomer(null);
       setLoading(false);
       return;
@@ -52,13 +50,13 @@ export function useCustomerProfile(session: Session | null) {
     supabase
       .from("customers")
       .select("*")
-      .eq("auth_user_id", session.user.id)
+      .eq("auth_user_id", userId)
       .single()
       .then(({ data }) => {
         setCustomer(data ?? null);
         setLoading(false);
       });
-  }, [session]);
+  }, [userId]);
 
   return { customer, loading };
 }

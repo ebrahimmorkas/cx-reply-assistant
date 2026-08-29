@@ -1,21 +1,3 @@
-/**
- * One-time (re-runnable) ingestion script.
- *
- * What it does:
- *   1. Reads every row from `knowledge_docs` in Supabase
- *   2. Splits each doc's content into small chunks (chunk.ts)
- *   3. Embeds each chunk via HuggingFace (embeddings.ts)
- *   4. Upserts all chunks into Qdrant, tagged with brand_id + doc_id
- *      (qdrant.ts) so retrieval can filter by brand and we can always
- *      trace a retrieved chunk back to its source policy document.
- *
- * Run with:  npm run ingest
- *
- * Safe to re-run: point IDs are deterministic (doc_id + chunk_index),
- * so re-running after editing a policy doc just overwrites the old
- * vectors instead of creating duplicates.
- */
-
 import "dotenv/config";
 import { createClient } from "@supabase/supabase-js";
 import { chunkText } from "./lib/chunk";
@@ -38,9 +20,6 @@ function requireEnv(name: string): string {
   return val;
 }
 
-// Deterministic point ID so re-ingesting the same doc/chunk overwrites
-// rather than duplicates. Qdrant point IDs must be uint64 or UUID —
-// we derive a stable UUID-shaped string from doc_id + chunk_index.
 function pointId(docId: string, chunkIndex: number): string {
   const base = docId.replace(/-/g, "");
   return [

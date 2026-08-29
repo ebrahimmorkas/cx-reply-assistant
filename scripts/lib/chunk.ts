@@ -1,22 +1,3 @@
-/**
- * Splits a policy document into small, semantically coherent chunks.
- *
- * Why chunk at all, given these docs are short (a few sentences each)?
- * Two reasons, worth calling out in the write-up:
- *   1. It's the right pattern to demonstrate even at small scale, since
- *      Part 2 (system design) asks us to reason about scaling this to
- *      500 brands — at that scale, docs will be much longer, and
- *      un-chunked retrieval would return whole irrelevant documents.
- *   2. Smaller chunks -> more precise retrieval -> the LLM gets exactly
- *      the sentence that answers "what's the refund window", not a
- *      whole policy dumped into its context.
- *
- * Strategy: split on sentence boundaries, then group sentences into
- * chunks of ~2 sentences with a 1-sentence overlap, so a policy nuance
- * that spans a sentence boundary (e.g. "damaged items are exempt from
- * the 7-day rule") doesn't get split across two disconnected chunks.
- */
-
 export interface Chunk {
   text: string;
   chunkIndex: number;

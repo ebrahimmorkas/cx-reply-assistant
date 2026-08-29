@@ -2,8 +2,6 @@ import { useEffect, useState, useCallback } from "react";
 import { supabase } from "./supabase";
 import type { ConversationSummary, ConversationDetail } from "../types";
 
-/** Fetches the conversation queue: every conversation joined with its
- * customer and most recent message, newest activity first. */
 export function useConversationList() {
   const [conversations, setConversations] = useState<ConversationSummary[]>([]);
   const [loading, setLoading] = useState(true);

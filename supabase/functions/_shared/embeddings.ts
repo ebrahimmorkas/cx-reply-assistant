@@ -1,11 +1,3 @@
-/**
- * Deno port of scripts/lib/embeddings.ts — same HuggingFace model and
- * endpoint, kept as a separate copy because Edge Functions run on Deno
- * and can't import directly from the Node `scripts/` directory. Logic
- * is intentionally identical: using a different model here than at
- * ingestion time would make the vectors incomparable.
- */
-
 const HF_MODEL = "sentence-transformers/all-MiniLM-L6-v2";
 const HF_API_URL = `https://router.huggingface.co/hf-inference/models/${HF_MODEL}/pipeline/feature-extraction`;
 

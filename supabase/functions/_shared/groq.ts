@@ -1,10 +1,3 @@
-/**
- * Thin Groq client. Deliberately just this one function, so swapping to
- * OpenRouter/DeepInfra later means changing this file only — nothing
- * calling it needs to change, since the OpenAI-style chat completion
- * shape is shared across all three providers.
- */
-
 export interface ChatMessage {
   role: "system" | "user" | "assistant";
   content: string;

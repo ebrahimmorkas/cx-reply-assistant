@@ -1,19 +1,3 @@
--- ============================================================
--- Datastraw CX Reply Assistant — Initial Schema
--- ============================================================
--- Design notes:
--- - Every table carries brand_id (directly or via FK chain) so that
---   Row Level Security policies can enforce brand isolation later.
--- - reply_logs captures the full lifecycle of a generated reply:
---   customer message -> retrieved KB context -> AI draft -> agent edit
---   -> final approved response. This satisfies the "Data & Logging"
---   requirement in the assessment.
--- - knowledge_docs holds the canonical policy text. Qdrant stores
---   embeddings of chunks derived from this table (see 1B), keyed back
---   to knowledge_docs.id so we can always trace a retrieved chunk to
---   its source document.
--- ============================================================
-
 create extension if not exists "uuid-ossp";
 
 -- ---------- Brands ----------

@@ -29,8 +29,8 @@ results.
 
 ## 1A: Database setup
 
-1. Create a Supabase project (see setup steps shared earlier).
-2. Copy `.env.example` to `.env` and fill in your real keys — **never commit `.env`**.
+1. Create a Supabase project
+2. Copy `.env.example` to `.env` and fill in your real keys
 3. Apply the migrations, either via the Supabase SQL editor (paste file contents
    in order) or via the Supabase CLI:
 
